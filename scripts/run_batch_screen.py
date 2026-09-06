@@ -74,6 +74,11 @@ def main():
     if args.limit:
         tickers = tickers[: args.limit]
 
+    # yfinanceのshortNameは英語（ローマ字）表記になるため、
+    # JPX公式一覧の日本語銘柄名（name列）をticker→日本語名の辞書として用意し、
+    # 後でCSV出力時に上書きする。
+    jp_name_map = dict(zip(universe["ticker"], universe["name"]))
+
     total = len(tickers)
     print(f"対象銘柄数: {total}")
 
@@ -104,6 +109,10 @@ def main():
                 print(f"進捗: {done_count}/{total} ({elapsed:.0f}秒経過)")
 
     df = pd.DataFrame(rows)
+
+    # JPX公式の日本語銘柄名で上書き（yfinance側のローマ字名より優先）
+    if not df.empty and "銘柄コード" in df.columns:
+        df["銘柄名"] = df["銘柄コード"].map(jp_name_map).fillna(df["銘柄名"])
 
     os.makedirs("data", exist_ok=True)
     df.to_csv(OUTPUT_PATH, index=False, encoding="utf-8-sig")
