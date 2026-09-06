@@ -19,10 +19,12 @@ env/
 .DS_Store
 Thumbs.db
 
-# ローカルデータ・ログ（dataフォルダのCSVは除外しない）
+# ローカルデータ・ログ（dataフォルダのCSV・ログは除外しない）
 *.log
 *.csv
 !data/*.csv
+!data/*.log
+!requirements.txt
 
 # Jupyter
 .ipynb_checkpoints/
