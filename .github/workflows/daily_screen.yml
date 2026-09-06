@@ -34,7 +34,7 @@ jobs:
         run: python scripts/build_universe.py
 
       - name: 全銘柄スキャンを実行
-        run: python scripts/run_batch_screen.py --workers 8
+        run: python scripts/run_batch_screen.py --workers 4
 
       - name: 結果をコミット&push
         run: |

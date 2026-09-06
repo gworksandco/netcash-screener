@@ -9,6 +9,8 @@ scripts/run_batch_screen.py から呼び出される。
 バッチ処理からも、ローカルでの動作確認からも同じロジックを使い回せる。
 """
 
+import time
+import random
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -115,71 +117,113 @@ def fetch_balance_sheet_items(ticker_obj: yf.Ticker) -> dict:
 
 
 def fetch_single_stock(
-    code: str, liability_multiplier: float, securities_multiplier: float
+    code: str,
+    liability_multiplier: float,
+    securities_multiplier: float,
+    max_retries: int = 3,
 ) -> ScreenResult:
-    """1銘柄分のデータを取得し、ネットキャッシュ指標を計算する。"""
-    res = ScreenResult(code=code)
-    try:
-        t = yf.Ticker(code)
+    """
+    1銘柄分のデータを取得し、ネットキャッシュ指標を計算する。
+    Yahoo!Finance側のレート制限（429 Too Many Requests）で失敗した場合、
+    少し待ってから最大max_retries回まで自動的に再試行する。
+    """
+    last_exception = None
 
+    for attempt in range(max_retries):
+        if attempt > 0:
+            # 指数バックオフ + ランダムなジッターで再試行間隔を空ける
+            wait_sec = (2 ** attempt) + random.uniform(0, 1.0)
+            time.sleep(wait_sec)
+
+        res = ScreenResult(code=code)
         try:
-            info = t.info
-        except Exception:
-            info = {}
+            t = yf.Ticker(code)
 
-        res.name = info.get("shortName") or info.get("longName") or code
-        res.price = info.get("currentPrice") or info.get("regularMarketPrice")
-        res.market_cap = info.get("marketCap")
-        res.per = info.get("trailingPE")
-        res.pbr = info.get("priceToBook")
-        res.shares_outstanding = info.get("sharesOutstanding")
+            try:
+                info = t.info
+            except Exception as e:
+                last_exception = e
+                if _is_rate_limit_error(e):
+                    continue  # リトライ
+                info = {}
 
-        try:
-            bs = t.balance_sheet
-            equity_row = _safe_get_row(
-                bs,
-                [
-                    "Total Equity Gross Minority Interest",
-                    "Stockholders Equity",
-                    "Total Stockholder Equity",
-                ],
+            res.name = info.get("shortName") or info.get("longName") or code
+            res.price = info.get("currentPrice") or info.get("regularMarketPrice")
+            res.market_cap = info.get("marketCap")
+            res.per = info.get("trailingPE")
+            res.pbr = info.get("priceToBook")
+            res.shares_outstanding = info.get("sharesOutstanding")
+
+            try:
+                bs = t.balance_sheet
+                equity_row = _safe_get_row(
+                    bs,
+                    [
+                        "Total Equity Gross Minority Interest",
+                        "Stockholders Equity",
+                        "Total Stockholder Equity",
+                    ],
+                )
+                assets_row = _safe_get_row(bs, ["Total Assets"])
+                equity_val = _first_valid_value(equity_row)
+                assets_val = _first_valid_value(assets_row)
+                if equity_val is not None and assets_val:
+                    res.equity_ratio = (equity_val / assets_val) * 100.0
+            except Exception:
+                pass
+
+            bs_items = fetch_balance_sheet_items(t)
+            res.current_assets = bs_items["current_assets"]
+            res.total_liabilities = bs_items["total_liabilities"]
+            res.investment_securities = bs_items["investment_securities"]
+            res.missing_fields = bs_items["missing_fields"]
+
+            if res.price is None or res.shares_outstanding is None:
+                res.error = "株価または発行済株式数を取得できませんでした"
+                # infoが空(レート制限等)の場合はリトライ、そうでなければ確定的な欠損として確定
+                if not info:
+                    last_exception = RuntimeError("info empty")
+                    continue
+                return res
+
+            # 清原式 厳密ネットキャッシュ
+            res.net_cash = (
+                res.current_assets
+                - (res.total_liabilities * liability_multiplier)
+                + (res.investment_securities * securities_multiplier)
             )
-            assets_row = _safe_get_row(bs, ["Total Assets"])
-            equity_val = _first_valid_value(equity_row)
-            assets_val = _first_valid_value(assets_row)
-            if equity_val is not None and assets_val:
-                res.equity_ratio = (equity_val / assets_val) * 100.0
-        except Exception:
-            pass
+            res.net_cash_per_share = res.net_cash / res.shares_outstanding
 
-        bs_items = fetch_balance_sheet_items(t)
-        res.current_assets = bs_items["current_assets"]
-        res.total_liabilities = bs_items["total_liabilities"]
-        res.investment_securities = bs_items["investment_securities"]
-        res.missing_fields = bs_items["missing_fields"]
+            if res.price:
+                res.net_cash_ratio = res.net_cash_per_share / res.price
+                res.deviation_pct = (
+                    (res.net_cash_per_share - res.price) / res.price
+                ) * 100.0
 
-        if res.price is None or res.shares_outstanding is None:
-            res.error = "株価または発行済株式数を取得できませんでした"
-            return res
+            return res  # 成功
 
-        # 清原式 厳密ネットキャッシュ
-        res.net_cash = (
-            res.current_assets
-            - (res.total_liabilities * liability_multiplier)
-            + (res.investment_securities * securities_multiplier)
-        )
-        res.net_cash_per_share = res.net_cash / res.shares_outstanding
+        except Exception as e:
+            last_exception = e
+            if not _is_rate_limit_error(e):
+                res.error = f"データ取得エラー: {e}"
+                return res
+            # レート制限系エラーはリトライ
 
-        if res.price:
-            res.net_cash_ratio = res.net_cash_per_share / res.price
-            res.deviation_pct = (
-                (res.net_cash_per_share - res.price) / res.price
-            ) * 100.0
-
-    except Exception as e:
-        res.error = f"データ取得エラー: {e}"
-
+    # 全リトライ失敗
+    res = ScreenResult(code=code)
+    res.error = f"リトライ上限到達: {last_exception}"
     return res
+
+
+def _is_rate_limit_error(e: Exception) -> bool:
+    """レート制限（429 Too Many Requests）関連のエラーかどうかを判定する。"""
+    msg = str(e).lower()
+    return (
+        "429" in msg
+        or "too many requests" in msg
+        or "rate limit" in msg
+        or "ratelimit" in msg
+    )
 
 
 def recompute_net_cash(

@@ -73,8 +73,8 @@ def parse_args():
     p.add_argument(
         "--workers",
         type=int,
-        default=8,
-        help="並列スレッド数（デフォルト8。上げすぎるとYahoo側にレート制限される可能性）",
+        default=4,
+        help="並列スレッド数（デフォルト4。上げすぎるとYahoo側にレート制限される可能性）",
     )
     p.add_argument(
         "--limit",
