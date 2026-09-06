@@ -23,11 +23,37 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from screener_core import fetch_single_stock, result_to_row  # noqa: E402
+from screener_core import fetch_single_stock, recompute_net_cash, result_to_row  # noqa: E402
 
 UNIVERSE_PATH = "data/universe.csv"
 OUTPUT_PATH = "data/results.csv"
 META_PATH = "data/last_updated.txt"
+EDINET_FINANCIALS_PATH = "data/edinet_financials.csv"
+
+
+def ticker_to_sec_code(ticker: str) -> str:
+    """'7203.T' -> '72030'（EDINETのsecCodeは証券コード4桁+末尾0の5桁）"""
+    code = ticker.split(".")[0]
+    return f"{code}0"
+
+
+def load_edinet_financials() -> dict:
+    """
+    data/edinet_financials.csv（週次バッチで作成）を読み込み、
+    secCode(5桁) → {current_assets, total_liabilities, investment_securities} の辞書を返す。
+    ファイルが無ければ空の辞書（＝EDINET連携なしでyfinanceのみで動作）。
+    """
+    if not os.path.exists(EDINET_FINANCIALS_PATH):
+        return {}
+    df = pd.read_csv(EDINET_FINANCIALS_PATH, dtype={"secCode": str})
+    result = {}
+    for _, row in df.iterrows():
+        result[row["secCode"]] = {
+            "current_assets": row.get("流動資産_EDINET"),
+            "total_liabilities": row.get("負債合計_EDINET"),
+            "investment_securities": row.get("投資有価証券_EDINET"),
+        }
+    return result
 
 
 def parse_args():
@@ -79,6 +105,12 @@ def main():
     # 後でCSV出力時に上書きする。
     jp_name_map = dict(zip(universe["ticker"], universe["name"]))
 
+    edinet_map = load_edinet_financials()
+    if edinet_map:
+        print(f"EDINET財務データを読み込みました: {len(edinet_map)}銘柄分")
+    else:
+        print("EDINET財務データが見つかりません（yfinanceのみで計算します）")
+
     total = len(tickers)
     print(f"対象銘柄数: {total}")
 
@@ -97,6 +129,29 @@ def main():
             done_count += 1
             try:
                 res = future.result()
+
+                # EDINETデータがあれば、欠損しがちな3項目を上書きして再計算する
+                sec_code = ticker_to_sec_code(code)
+                edinet_vals = edinet_map.get(sec_code)
+                if edinet_vals:
+                    overridden = []
+                    for field_name, attr_name, label in [
+                        ("current_assets", "current_assets", "流動資産"),
+                        ("total_liabilities", "total_liabilities", "負債合計"),
+                        ("investment_securities", "investment_securities", "投資有価証券"),
+                    ]:
+                        val = edinet_vals.get(field_name)
+                        if val is not None and not pd.isna(val):
+                            setattr(res, attr_name, float(val))
+                            overridden.append(label)
+                            if label in res.missing_fields:
+                                res.missing_fields.remove(label)
+                    if overridden:
+                        res = recompute_net_cash(
+                            res, args.liability_multiplier, args.securities_multiplier
+                        )
+                        res.data_source = "EDINET"
+
                 row = result_to_row(res)
                 rows.append(row)
                 if res.error:

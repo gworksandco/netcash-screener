@@ -43,6 +43,8 @@ def load_results() -> pd.DataFrame:
     for col in numeric_cols:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
+    if "データ元" not in df.columns:
+        df["データ元"] = "yfinance"
     return df
 
 
@@ -136,6 +138,7 @@ else:
     display_cols = [
         "銘柄コード", "銘柄名", "現在株価", "時価総額(億円)", "PER", "PBR",
         "自己資本比率(%)", "1株ネットキャッシュ", "ネットキャッシュ比率", "乖離率(%)",
+        "データ元",
     ]
 
     def _highlight_ratio(val):

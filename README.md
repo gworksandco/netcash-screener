@@ -53,15 +53,38 @@ Net Cash = 流動資産 - (負債合計 × 負債倍率) + (投資有価証券 �
 デフォルトは負債倍率1.1、有価証券倍率0.7（`scripts/run_batch_screen.py`の
 引数で変更可能）。
 
+## EDINET連携（財務データの精度向上）
+
+yfinanceのbalance_sheet項目（特に「投資有価証券」）は欠損が多いため、
+金融庁が提供するEDINET APIから有価証券報告書のデータを取得し、
+より正確な数値で上書きする仕組みを追加しています。
+
+- `scripts/edinet_client.py`：EDINET APIとの通信・XBRL-CSV解析
+- `scripts/update_edinet_financials.py`：有価証券報告書を検索し、
+  流動資産・負債合計・投資有価証券を抽出して`data/edinet_financials.csv`に保存
+- `.github/workflows/weekly_edinet_update.yml`：週次で自動実行
+  （EDINETの財務データは決算期にしか変わらないため、日次ではなく週次にしている）
+
+`scripts/run_batch_screen.py`は、`data/edinet_financials.csv`に対応する
+証券コードのデータがあれば、yfinance側の数値をEDINET側で上書きしてから
+ネットキャッシュを再計算する。結果テーブルの「データ元」列で、
+EDINETのデータが使われたか（`EDINET`）、yfinanceのみか（`yfinance`）を確認できる。
+
+### セットアップ（EDINET APIキーの登録）
+
+1. https://api.edinet-fsa.go.jp/api/auth/index.aspx?mode=1 で無料アカウントを作成し、
+   APIキーを発行する
+2. GitHubリポジトリの Settings → Secrets and variables → Actions →
+   「New repository secret」で、名前 `EDINET_API_KEY`・値に取得したキーを登録する
+3. Actionsタブから「Weekly EDINET Financial Update」を手動実行すると、
+   初回は過去450日分の書類を走査するため時間がかかる
+   （2回目以降は直近10日分だけの差分更新になり高速）
+
 ## 今後の拡張予定（段階的実装）
 
 1. ~~現行版（少数銘柄・yfinanceライブ取得）をデプロイし、動作確認~~ 完了
 2. ~~東証全銘柄対応（GitHub Actionsによる夜間バッチ処理）~~ 完了
-3. **EDINET API連携**：yfinanceのbalance_sheet項目欠損（特に「投資有価証券」）を、
-   金融庁が提供する有価証券報告書のXBRLデータで補完・上書きする
-   - EDINET APIはAPIキー登録が必要な仕様のため、キーはGitHub Actionsの
-     Secrets（リポジトリのSettings > Secrets and variables > Actions）で管理し、
-     コードにもリポジトリにも直接書き込まない
+3. ~~EDINET API連携~~ 完了
 
 ## 注意事項
 
@@ -72,4 +95,7 @@ Net Cash = 流動資産 - (負債合計 × 負債倍率) + (投資有価証券 �
 - 全銘柄スキャンは数十分〜数時間かかる場合があり、Yahoo!Finance側の
   レート制限により一部銘柄でエラーになることがあります
   （`data/errors.log` に記録されます）。
+- EDINETのXBRLタグ付けは企業によって微妙に異なる場合があり
+  （特に「投資有価証券」は連結・個別の扱いにばらつきがある）、
+  EDINET連携後も一部銘柄で欠損が残る可能性があります。
 - 本アプリは教育・情報提供目的であり、投資助言ではありません。

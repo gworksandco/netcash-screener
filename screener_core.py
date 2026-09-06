@@ -35,6 +35,7 @@ class ScreenResult:
     deviation_pct: Optional[float] = None  # %
     error: str = ""
     missing_fields: list = field(default_factory=list)
+    data_source: str = "yfinance"
 
 
 def _safe_get_row(df: pd.DataFrame, candidates: list) -> Optional[pd.Series]:
@@ -181,6 +182,28 @@ def fetch_single_stock(
     return res
 
 
+def recompute_net_cash(
+    res: ScreenResult, liability_multiplier: float, securities_multiplier: float
+) -> ScreenResult:
+    """
+    current_assets / total_liabilities / investment_securities が
+    (EDINETデータなどで)上書きされた後に、ネットキャッシュ関連の
+    フィールドを再計算する。price / shares_outstanding は変更しない。
+    """
+    if res.shares_outstanding is None or res.price is None:
+        return res
+
+    res.net_cash = (
+        (res.current_assets or 0.0)
+        - ((res.total_liabilities or 0.0) * liability_multiplier)
+        + ((res.investment_securities or 0.0) * securities_multiplier)
+    )
+    res.net_cash_per_share = res.net_cash / res.shares_outstanding
+    res.net_cash_ratio = res.net_cash_per_share / res.price
+    res.deviation_pct = ((res.net_cash_per_share - res.price) / res.price) * 100.0
+    return res
+
+
 def result_to_row(r: ScreenResult) -> dict:
     """ScreenResultをCSV出力用のdictに変換する。"""
     return {
@@ -200,5 +223,6 @@ def result_to_row(r: ScreenResult) -> dict:
         "ネットキャッシュ比率": r.net_cash_ratio,
         "乖離率(%)": r.deviation_pct,
         "欠損項目": ", ".join(r.missing_fields) if r.missing_fields else "",
+        "データ元": r.data_source,
         "エラー": r.error,
     }
