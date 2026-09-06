@@ -1,0 +1,28 @@
+# Streamlit secrets（EDINET APIキー等を将来ここに置く場合の保険）
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 仮想環境
+.venv/
+venv/
+env/
+
+# エディタ・OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ローカルデータ・ログ
+*.log
+*.csv
+!requirements.txt
+
+# Jupyter
+.ipynb_checkpoints/
