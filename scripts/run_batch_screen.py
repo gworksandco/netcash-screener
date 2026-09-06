@@ -16,6 +16,7 @@ ThreadPoolExecutorで並列化しつつ、Yahoo!Finance側への配慮として
 import argparse
 import datetime
 import os
+import random
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -73,8 +74,14 @@ def parse_args():
     p.add_argument(
         "--workers",
         type=int,
-        default=4,
-        help="並列スレッド数（デフォルト4。上げすぎるとYahoo側にレート制限される可能性）",
+        default=3,
+        help="並列スレッド数（デフォルト3。上げすぎるとYahoo側にレート制限される可能性）",
+    )
+    p.add_argument(
+        "--request-delay",
+        type=float,
+        default=0.4,
+        help="各リクエスト送信前の最小ウェイト秒数（デフォルト0.4秒、バースト回避用）",
     )
     p.add_argument(
         "--limit",
@@ -119,6 +126,9 @@ def main():
     start_time = time.time()
 
     def _task(code):
+        # 各リクエストの前に少し待つことで、全体としてのリクエスト頻度を抑え、
+        # Yahoo!Finance側の一時的なIPブロックが起きにくくする。
+        time.sleep(args.request_delay + random.uniform(0, 0.2))
         return fetch_single_stock(code, args.liability_multiplier, args.securities_multiplier)
 
     with ThreadPoolExecutor(max_workers=args.workers) as executor:

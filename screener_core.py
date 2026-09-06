@@ -120,7 +120,7 @@ def fetch_single_stock(
     code: str,
     liability_multiplier: float,
     securities_multiplier: float,
-    max_retries: int = 3,
+    max_retries: int = 5,
 ) -> ScreenResult:
     """
     1銘柄分のデータを取得し、ネットキャッシュ指標を計算する。
@@ -132,7 +132,8 @@ def fetch_single_stock(
     for attempt in range(max_retries):
         if attempt > 0:
             # 指数バックオフ + ランダムなジッターで再試行間隔を空ける
-            wait_sec = (2 ** attempt) + random.uniform(0, 1.0)
+            # (待機時間の目安: 1回目5秒, 2回目10秒, 3回目20秒, 4回目40秒...)
+            wait_sec = (5 * (2 ** (attempt - 1))) + random.uniform(0, 3.0)
             time.sleep(wait_sec)
 
         res = ScreenResult(code=code)
@@ -153,6 +154,11 @@ def fetch_single_stock(
             res.per = info.get("trailingPE")
             res.pbr = info.get("priceToBook")
             res.shares_outstanding = info.get("sharesOutstanding")
+
+            # 一部の小型株ではsharesOutstandingがYahoo側に登録されていないことがある。
+            # その場合、時価総額÷株価から逆算するフォールバックを試みる。
+            if res.shares_outstanding is None and res.market_cap and res.price:
+                res.shares_outstanding = res.market_cap / res.price
 
             try:
                 bs = t.balance_sheet
