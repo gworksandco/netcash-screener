@@ -1,0 +1,42 @@
+name: Daily Net-Cash Screen
+
+# 毎日決まった時刻に全銘柄スキャンを実行し、結果をリポジトリにコミットする。
+# パブリックリポジトリなのでGitHub Actionsの実行は無料（時間制限も実質気にならない範囲）。
+on:
+  schedule:
+    # UTC 21:00 = 日本時間 翌6:00（東証の取引時間外に実行）
+    - cron: "0 21 * * *"
+  workflow_dispatch: {}  # Actionsタブから手動実行もできるようにする
+
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350  # GitHub Actionsの実行上限に余裕を持たせる
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Pythonをセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存パッケージをインストール
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: 銘柄ユニバースを取得（JPX公式データ）
+        run: python scripts/build_universe.py
+
+      - name: 全銘柄スキャンを実行
+        run: python scripts/run_batch_screen.py --workers 8
+
+      - name: 結果をコミット&push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/universe.csv data/results.csv data/last_updated.txt
+          git diff --staged --quiet || git commit -m "chore: daily net-cash screen update"
+          git push
