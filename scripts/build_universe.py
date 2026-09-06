@@ -38,7 +38,7 @@ def main():
         sys.exit(1)
 
     try:
-        # data_j.xls は旧形式のExcel(.xls)。xlrdライブラリが必要。
+        #data_j.xlsx は旧形式のExcel(.xls)。xlrdライブラリが必要。
         df = pd.read_excel(io.BytesIO(resp.content))
     except Exception as e:
         print(f"Excelの読み込みに失敗しました: {e}", file=sys.stderr)
