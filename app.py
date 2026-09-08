@@ -193,6 +193,11 @@ AD_BANNERS_HTML = [
 
 if AD_LINKS or AD_BANNERS_HTML:
     st.caption("PR")
+    st.markdown(
+        "配当金が入ったら試したい、九州の“幻”のグルメ　"
+        "大手サイトに出回らない本物の産直食材（マグロ・馬刺し・地酒など）が"
+        "全品送料無料で手に入ります。銘柄分析の息抜きや、自分へのご褒美に。"
+    )
     for ad in AD_LINKS:
         st.markdown(f"[{ad['label']}]({ad['url']})")
     for banner_html in AD_BANNERS_HTML:
