@@ -175,6 +175,29 @@ else:
         st.dataframe(df_raw, use_container_width=True)
 
 st.divider()
+
+# --- 広告・アフィリエイトリンク（PR） ---
+# テキストリンク用: {"label": 表示名, "url": リンク先}
+AD_LINKS = [
+    # {"label": "会社四季報オンライン", "url": "https://example.com/your-affiliate-link-1"},
+]
+
+# バナー画像広告用（A8.net等が発行するHTMLタグをそのまま貼り付ける）
+AD_BANNERS_HTML = [
+    """
+<a href="https://px.a8.net/svt/ejp?a8mat=4BC6B3+ATDIEQ+4H2M+6BEQ9" rel="nofollow">
+<img border="0" width="300" height="250" alt="" src="https://www29.a8.net/svt/bgt?aid=260908527654&wid=001&eno=01&mid=s00000020875001061000&mc=1"></a>
+<img border="0" width="1" height="1" src="https://www10.a8.net/0.gif?a8mat=4BC6B3+ATDIEQ+4H2M+6BEQ9" alt="">
+    """,
+]
+
+if AD_LINKS or AD_BANNERS_HTML:
+    st.caption("PR")
+    for ad in AD_LINKS:
+        st.markdown(f"[{ad['label']}]({ad['url']})")
+    for banner_html in AD_BANNERS_HTML:
+        st.markdown(banner_html, unsafe_allow_html=True)
+
 with st.expander("📄 免責事項・プライバシーポリシー"):
     st.markdown(
         """
