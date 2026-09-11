@@ -111,6 +111,7 @@ def main():
     # JPX公式一覧の日本語銘柄名（name列）をticker→日本語名の辞書として用意し、
     # 後でCSV出力時に上書きする。
     jp_name_map = dict(zip(universe["ticker"], universe["name"]))
+    sector_map = dict(zip(universe["ticker"], universe.get("sector", pd.Series(dtype=str))))
 
     edinet_map = load_edinet_financials()
     if edinet_map:
@@ -178,6 +179,7 @@ def main():
     # JPX公式の日本語銘柄名で上書き（yfinance側のローマ字名より優先）
     if not df.empty and "銘柄コード" in df.columns:
         df["銘柄名"] = df["銘柄コード"].map(jp_name_map).fillna(df["銘柄名"])
+        df["業種"] = df["銘柄コード"].map(sector_map)
 
     os.makedirs("data", exist_ok=True)
     df.to_csv(OUTPUT_PATH, index=False, encoding="utf-8-sig")
