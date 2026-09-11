@@ -45,6 +45,8 @@ def load_results() -> pd.DataFrame:
             df[col] = pd.to_numeric(df[col], errors="coerce")
     if "データ元" not in df.columns:
         df["データ元"] = "yfinance"
+    if "業種" not in df.columns:
+        df["業種"] = ""
     return df
 
 
@@ -112,7 +114,8 @@ else:
         & (df_valid["PER"] <= max_per)
         & (df_valid["PER"] > 0)
         & (df_valid["自己資本比率(%)"] >= min_equity_ratio)
-    ].sort_values("ネットキャッシュ比率", ascending=False)
+    ].sort_values("ネットキャッシュ比率", ascending=False).reset_index(drop=True)
+    df_filtered.index = df_filtered.index + 1
 
     # --- KPIカード ---
     st.subheader("📊 抽出結果サマリー")
@@ -136,7 +139,7 @@ else:
     st.subheader("📋 スクリーニング結果一覧")
 
     display_cols = [
-        "銘柄コード", "銘柄名", "現在株価", "時価総額(億円)", "PER", "PBR",
+        "銘柄コード", "銘柄名", "業種", "現在株価", "時価総額(億円)", "PER", "PBR",
         "自己資本比率(%)", "1株ネットキャッシュ", "ネットキャッシュ比率", "乖離率(%)",
         "データ元",
     ]
@@ -161,7 +164,15 @@ else:
             )
             .map(_highlight_ratio, subset=["ネットキャッシュ比率"])
         )
-        st.dataframe(styled, use_container_width=True, height=450)
+        st.dataframe(
+            styled,
+            use_container_width=True,
+            height=450,
+            column_config={
+                "銘柄コード": st.column_config.TextColumn("銘柄コード", pinned=True),
+                "銘柄名": st.column_config.TextColumn("銘柄名", pinned=True),
+            },
+        )
 
         csv_bytes = df_filtered[display_cols].to_csv(index=False).encode("utf-8-sig")
         st.download_button(
