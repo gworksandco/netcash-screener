@@ -84,13 +84,15 @@ st.sidebar.caption(
 # ----------------------------------------------------------------------------
 # メイン画面
 # ----------------------------------------------------------------------------
-st.title("💰 ネットキャッシュ比率スクリーナー")
-st.caption("清原達郎『わが投資術』のネットキャッシュ株の考え方に基づく東証全銘柄スクリーニング")
-
-APP_URL = "https://netcash-screener-6buc7hzelcykapkfdstyu7.streamlit.app/"
-with st.expander("🔗 このアプリを共有"):
-    st.code(APP_URL, language=None)
-    st.caption("上のURLをタップ/クリックしてコピーし、共有したい相手に送ってください。")
+title_col, share_col = st.columns([4, 1])
+with title_col:
+    st.title("💰 ネットキャッシュ比率スクリーナー")
+    st.caption("清原達郎『わが投資術』のネットキャッシュ株の考え方に基づく東証全銘柄スクリーニング")
+with share_col:
+    APP_URL = "https://netcash-screener-6buc7hzelcykapkfdstyu7.streamlit.app/"
+    with st.popover("🔗 共有"):
+        st.code(APP_URL, language=None)
+        st.caption("上のURLをタップ/クリックしてコピーし、共有したい相手に送ってください。")
 
 last_updated = load_last_updated()
 st.info(f"📅 データ最終更新: {last_updated}（毎日自動更新）")
