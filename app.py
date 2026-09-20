@@ -233,6 +233,25 @@ if AD_LINKS or AD_BANNERS_HTML:
     )
     st.markdown(AD_BANNERS_HTML[1], unsafe_allow_html=True)
 
+def render_related_sites() -> None:
+    st.markdown("---")
+    st.markdown("##### 🔗 関連サイト")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(
+            "**日本株 利回り乖離スクリーナー**\n\n"
+            "高配当優良株の「過去平均利回りとの乖離」で買い時を判定\n\n"
+            "[サイトを開く →](https://yield-gap-analyzer-nfqwcimerggfcozvrsbnga.streamlit.app/)"
+        )
+    with col2:
+        st.markdown(
+            "**米国株 利回り乖離スクリーナー**\n\n"
+            "S&P500の高配当優良株を同じ基準で判定\n\n"
+            "[サイトを開く →](https://yield-gap-analyzer-us-bfrwcen6dvkvdrmy7z8wkb.streamlit.app/)"
+        )
+
+
+render_related_sites()
 with st.expander("📄 免責事項・プライバシーポリシー"):
     st.markdown(
         """
