@@ -228,7 +228,6 @@ if AD_LINKS or AD_BANNERS_HTML:
         "NISA成長投資枠と相性のいい割安株を狙うなら。マネックス証券なら「銘柄スカウター」で"
         "詳細な分析ができます。口座開設はこちらから。"
     )
-    )
     st.markdown(AD_BANNERS_HTML[1], unsafe_allow_html=True)
 
 def render_related_sites() -> None:
