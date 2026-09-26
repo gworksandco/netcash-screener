@@ -208,9 +208,7 @@ AD_BANNERS_HTML = [
 <img border="0" width="1" height="1" src="https://www10.a8.net/0.gif?a8mat=4BC6B3+ATDIEQ+4H2M+6BEQ9" alt="">
     """,
     """
-<a href="https://px.a8.net/svt/ejp?a8mat=4BC6B5+G3ASDU+5V1I+HVNAP" rel="nofollow">
-<img border="0" width="300" height="250" alt="" src="https://www29.a8.net/svt/bgt?aid=260908529973&wid=001&eno=01&mid=s00000027351003003000&mc=1"></a>
-<img border="0" width="1" height="1" src="https://www17.a8.net/0.gif?a8mat=4BC6B5+G3ASDU+5V1I+HVNAP" alt="">
+<a href="https://www.tcs-asp.net/alink?AC=C143350&LC=MXSEC1&SQ=0&isq=25"><img src="https://img.tcs-asp.net/imagesender?ac=C143350&lc=MXSEC1&isq=25&psq=0" border="0" alt="マネックス証券"></a>
     """,
 ]
 
@@ -227,9 +225,9 @@ if AD_LINKS or AD_BANNERS_HTML:
     st.markdown(AD_BANNERS_HTML[0], unsafe_allow_html=True)
 
     st.markdown(
-        "含み益が出たら一献、希少ウイスキー・古酒の専門店「リンクサス酒販」　"
-        "市場でなかなか出会えない希少なウイスキー・古酒を取り扱っています。"
-        "利益確定を祝う一本を探してみては。"
+        "NISA成長投資枠と相性のいい割安株を狙うなら。マネックス証券なら「銘柄スカウター」で"
+        "詳細な分析ができます。口座開設はこちらから。"
+    )
     )
     st.markdown(AD_BANNERS_HTML[1], unsafe_allow_html=True)
 
