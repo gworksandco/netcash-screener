@@ -220,7 +220,10 @@ if AD_LINKS or AD_BANNERS_HTML:
     ad_col1, ad_col2 = st.columns(2)
     with ad_col1:
         st.markdown(
-            "配当金が入ったら試したい、九州の"幻"のグルメ　"
+       ad_col1, ad_col2 = st.columns(2)
+    with ad_col1:
+        st.markdown(
+            "配当金が入ったら試したい、九州の“幻”のグルメ　"
             "大手サイトに出回らない本物の産直食材（マグロ・馬刺し・地酒など）が"
             "全品送料無料で手に入ります。銘柄分析の息抜きや、自分へのご褒美に。"
         )
