@@ -218,9 +218,7 @@ if AD_LINKS or AD_BANNERS_HTML:
         st.markdown(f"[{ad['label']}]({ad['url']})")
 
     ad_col1, ad_col2 = st.columns(2)
-    with ad_col1:
-        st.markdown(
-       ad_col1, ad_col2 = st.columns(2)
+
     with ad_col1:
         st.markdown(
             "配当金が入ったら試したい、九州の“幻”のグルメ　"
